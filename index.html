@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Smart Door Lock</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --primary:#4CAF50;
+  --danger:#f44336;
+  --bg:linear-gradient(135deg,#667eea,#764ba2);
+  --glass:rgba(255,255,255,.15);
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Segoe UI', Arial, sans-serif;
+  background:var(--bg);
+  margin:0;
+  min-height:100vh;
+  color:#333;
+}
+
+.container{
+  max-width:1000px;
+  margin:auto;
+  padding:20px;
+}
+
+/* ===== CARD ===== */
+.card{
+  background:rgba(255,255,255,.85);
+  backdrop-filter: blur(10px);
+  border-radius:16px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 8px 25px rgba(0,0,0,.15);
+}
+
+h2,h3{
+  margin:0 0 15px;
+  text-align:center;
+}
+
+/* ===== STATUS ===== */
+.status-box{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  font-size:18px;
+  font-weight:bold;
+}
+
+.badge{
+  padding:6px 14px;
+  border-radius:20px;
+  color:white;
+  font-size:14px;
+}
+
+.online{ background:var(--primary); }
+.offline{ background:var(--danger); }
+
+/* ===== CONTROL ===== */
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+button{
+  padding:16px 32px;
+  font-size:16px;
+  border:none;
+  border-radius:50px;
+  cursor:pointer;
+  color:white;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  transition:.3s;
+}
+
+button:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 15px rgba(0,0,0,.2);
+}
+
+.open{ background:var(--primary); }
+.close{ background:var(--danger); }
+
+/* ===== TABLE ===== */
+.table-wrapper{
+  overflow-x:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+th, td{
+  padding:12px;
+  text-align:center;
+}
+
+th{
+  background:var(--primary);
+  color:white;
+}
+
+tr:nth-child(even){
+  background:#f5f7fa;
+}
+
+tr:hover{
+  background:#e8f5e9;
+}
+
+/* ===== FOOTER ===== */
+.footer{
+  text-align:center;
+  font-size:13px;
+  opacity:.7;
+  margin-top:10px;
+}
+
+@media(max-width:600px){
+  h2{ font-size:22px; }
+  button{ width:100%; justify-content:center; }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <!-- STATUS -->
+  <div class="card">
+    <h2>🔐 Smart Door Lock</h2>
+    <div class="status-box">
+      Status:
+      <span id="status" class="badge offline">OFFLINE</span>
+    </div>
+  </div>
+
+  <!-- CONTROL -->
+  <div class="card">
+    <h3>🎮 Kontrol Pintu</h3>
+    <div class="controls">
+      <button class="open" onclick="openDoor()">🔓 BUKA PINTU</button>
+      <button class="close" onclick="closeDoor()">🔒 TUTUP PINTU</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="card">
+    <h3>📜 Log Akses</h3>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Sumber</th>
+            <th>Tanggal</th>
+            <th>Jam</th>
+          </tr>
+        </thead>
+        <tbody id="logTable">
+          <tr><td colspan="4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    Smart Door Lock IoT • ESP8266
+  </div>
+
+</div>
+
+<script>
+const BASE_URL = "http://10.210.57.150";
+
+// ===== STATUS =====
+function loadStatus(){
+  fetch(BASE_URL + "/status")
+    .then(res => res.text())
+    .then(txt => {
+      const st = document.getElementById("status");
+      st.innerText = txt;
+      st.className = "badge online";
+    })
+    .catch(()=>{
+      const st = document.getElementById("status");
+      st.innerText = "OFFLINE";
+      st.className = "badge offline";
+    });
+}
+
+// ===== CONTROL =====
+function openDoor(){
+  fetch(BASE_URL + "/open")
+    .then(res => res.text())
+    .then(alert);
+}
+
+function closeDoor(){
+  alert("Pintu akan menutup otomatis");
+}
+
+// ===== LOG =====
+function loadLogs(){
+  fetch(BASE_URL + "/logs")
+    .then(res => res.json())
+    .then(data => {
+      const table = document.getElementById("logTable");
+      table.innerHTML = "";
+
+      data.reverse().forEach((item, index) => {
+        const part = item.split(" | ");
+        const source = part[0];
+        const dateTime = part[1].split(" ");
+        table.innerHTML += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${source}</td>
+            <td>${dateTime[0]}</td>
+            <td>${dateTime[1]}</td>
+          </tr>`;
+      });
+    });
+}
+
+// ===== AUTO UPDATE =====
+loadStatus();
+loadLogs();
+setInterval(loadStatus, 5000);
+setInterval(loadLogs, 3000);
+</script>
+
+</body>
+</html>
